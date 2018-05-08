@@ -2,8 +2,8 @@ library(ggplot2)
 library(dplyr)
 library(TSA)
 library(plotly)
-library(tsoutliers)
 library(zoo)
+library(tsoutliers)
 
 df <- read.csv("raw_dataset.csv")
 
@@ -35,19 +35,19 @@ daily_df$indx <- as.numeric(as.character(daily_df$indx))
 #plot data
 #####
 #plot raw data
-ggplot(df , aes(x=time , y=CO2))+
-  geom_line()+
-  labs(title="CO2 data by minute")
-
-#plot hourly data
-ggplot(hourly_df , aes(x=indx , y=CO2))+
-  geom_line()+
-  labs(title="hourly CO2 Data")
-
-#plot daily data
-ggplot(daily_df , aes(x=indx , y=CO2))+
-  geom_line()+
-  labs(title="daily CO2 Data")
+# ggplot(df , aes(x=time , y=CO2))+
+#   geom_line()+
+#   labs(title="CO2 data by minute")
+# 
+# #plot hourly data
+# ggplot(hourly_df , aes(x=indx , y=CO2))+
+#   geom_line()+
+#   labs(title="hourly CO2 Data")
+# 
+# #plot daily data
+# ggplot(daily_df , aes(x=indx , y=CO2))+
+#   geom_line()+
+#   labs(title="daily CO2 Data")
 
 
 
@@ -138,12 +138,14 @@ f <- list(
 
 #plot concentration
 dataplot <- plot_ly(data=all_data , x=~time)%>%
-  add_lines(y=~CO2 , name = "by-minute",visible=T)%>%
-  add_lines( y=~hourly_CO2 , name="by-hour",visible=F)%>%
+  add_lines( y=~hourly_CO2 , name="by-hour",visible=T)%>%
+  add_lines(y=~CO2 , name = "by-minute",visible=F)%>%
   add_lines( y=~daily_CO2 , name="by-day",visible=F)%>%
+  
+ 
   layout(
     annotations=list(
-    text= "CO2 concentration",
+    text= "CO2 concentration data \n \n CO2 concentration",
     font = f,
     xref = "paper",
     yref = "paper",
@@ -158,16 +160,15 @@ dataplot <- plot_ly(data=all_data , x=~time)%>%
      updatemenus = list(
  
        list(
-         y=0.7,
+         y=0.5,
          buttons=list(
-           list(method = "restyle",
-               args = list("visible", list(T,F,F)),
-                label = "by-minute"),
            
            list(method = "restyle",
-                args = list("visible", list(F,T,F)),
+                args = list("visible", list(T,F,F)),
                 label = "by-hour"),
-         
+           list(method = "restyle",
+               args = list("visible", list(F,T,F)),
+                label = "by-minute"),
          list(method = "restyle",
              args = list("visible", list(F,F,T)),
               label = "by-day"))
@@ -188,9 +189,10 @@ daily_fft <- data.frame(period = (1/daily_spec$freq) , daily_spec=log(daily_spec
   filter(period>1 , period < 50)
 
 fft_plot <- plot_ly(data=minute_fft , x=~period)%>%
-  add_lines(data = minute_fft , y=~minute_spec , name = "by-minute",visible=T)%>%
-  add_lines(data=hourly_fft , y=~hourly_spec , name="by-hour",visible=F)%>%
+  add_lines(data=hourly_fft , y=~hourly_spec , name="by-hour",visible=T)%>%
+  add_lines(data = minute_fft , y=~minute_spec , name = "by-minute",visible=F)%>%
   add_lines( data = daily_fft , y=~daily_spec , name="by-day",visible=F)%>%
+  
   layout(
     annotations=list(
     text= "Spectral plot of data",
@@ -208,15 +210,18 @@ fft_plot <- plot_ly(data=minute_fft , x=~period)%>%
     updatemenus = list(
       
       list(
-        y=0.7,
+        y=0.5,
         buttons=list(
+          
           list(method = "restyle",
                args = list("visible", list(T,F,F)),
-               label = "by-minute"),
+               label = "by-hour"),
           
           list(method = "restyle",
                args = list("visible", list(F,T,F)),
-               label = "by-hour"),
+               label = "by-minute"),
+          
+
           
           list(method = "restyle",
                args = list("visible", list(F,F,T)),
@@ -227,9 +232,45 @@ fft_plot <- plot_ly(data=minute_fft , x=~period)%>%
 
 
 #plot outliers
-# outlier_plot <- plot_ly(data=outlier_df , x=~period)%>%
-#   add_lines(data = minute_fft , y=~minute_spec , name = "by-minute",visible=T)%>%
-#   add_lines(data=hourly_fft , y=~hourly_spec , name="by-hour",visible=F)%>%
-# 
-# subplot(dataplot , fft_plot , nrows=2 , titleX=T , titleY=T ,margin=0.1 )
+outlier_plot <- plot_ly(data=outlier_df , x=~x)%>%
+  add_lines(data = outlier_df , y=~actual , name = "actual",visible=T)%>%
+  add_lines(data=outlier_df , y=~adjusted , name="adjusted",visible=F )%>%
+  add_trace(data=outlier_points , y=~actual , x=~x, name="outlier", mode='markers' , visible=F)%>%
+  layout(
+    annotations=list(
+      text= "Outlier plot",
+      font = f,
+      xref = "paper",
+      yref = "paper",
+      yanchor = "bottom",
+      xanchor = "center",
+      align = "center",
+      x = 0.5,
+      y = 1,
+      showarrow = FALSE),
+    xaxis = list(domain=c(0,50)),
+    yaxis= list(title = 'concentration (ppm)'),
+    updatemenus = list(
+      
+      list(
+        y=0.5,
+        x=1.5,
+        buttons=list(
+          list(method = "restyle",
+               args = list("visible", list(T,F,F)),
+               label = "raw data"),
+          
+          list(method = "restyle",
+               args = list("visible", list(T,T,T)),
+               label = "outliers shown"))
+      )
+    )
+  )
+
+
+ subplot(dataplot , fft_plot , nrows=2 , titleX=T , titleY=T  , margin=0.1)%>%
+   layout(
+          showlegend=FALSE,showlegend2=FALSE)
+ 
+ outlier_plot
 
